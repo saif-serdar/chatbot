@@ -42,6 +42,16 @@ services:
     networks:
       - chatbot-network
 
+  # Adminer - Database UI (like phpMyAdmin, access at http://YOUR_IP:8080)
+  adminer:
+    image: adminer:latest
+    container_name: chatbot-adminer
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    networks:
+      - chatbot-network
+
   # Redis (for caching and sessions)
   redis:
     image: redis:7-alpine
