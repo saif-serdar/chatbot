@@ -1,0 +1,165 @@
+// Prisma Schema for Bitrix24 Lead Assistant Chatbot
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Agent (Sales agent — linked to Bitrix24 user and ChatApp responsible)
+model Agent {
+  id            String   @id @default(uuid())
+  bitrixUserId  String   @unique @map("bitrix_user_id")
+  chatappUserId String?  @unique @map("chatapp_user_id") // ChatApp responsible.id (e.g. "90098")
+  email         String   @unique
+  name          String
+  role          String   @default("agent")
+  passwordHash  String?  @map("password_hash")
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  leads        Lead[]
+  messages     Message[]
+  chatSessions ChatSession[]
+
+  @@map("agents")
+}
+
+// Lead (Contact from Bitrix24 / ChatApp conversation)
+model Lead {
+  id            String   @id @default(uuid())
+  bitrixLeadId  String?  @unique @map("bitrix_lead_id")  // null for ChatApp-only leads
+  chatappChatId String?  @map("chatapp_chat_id")         // ChatApp chat.id cache ("971501234567@c.us")
+  agentId       String   @map("agent_id")
+  name          String
+  phone         String?
+  email         String?
+  status        String?
+  source        String?
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  agent        Agent         @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  messages     Message[]
+  chatSessions ChatSession[]
+
+  @@unique([chatappChatId, agentId]) // one chat per agent, multiple nulls allowed
+  @@index([agentId])
+  @@map("leads")
+}
+
+// Message (WhatsApp text/voice, call transcripts, etc.)
+model Message {
+  id               String   @id @default(uuid())
+  leadId           String   @map("lead_id")
+  agentId          String   @map("agent_id")
+  content          String   @db.Text
+  type             String   // 'whatsapp', 'voice_transcription', 'call_transcript', 'system'
+  source           String   // 'chatapp', 'bitrix24', 'manual'
+  direction        String   // 'inbound', 'outbound'
+  bitrixCommentId  String?  @unique @map("bitrix_comment_id")   // Bitrix24 deduplication
+  chatappMessageId String?  @unique @map("chatapp_message_id")  // ChatApp deduplication
+  metadata         Json?
+  isEmbedded       Boolean  @default(false) @map("is_embedded")
+  embeddingId      String?  @map("embedding_id")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  // Relations
+  lead  Lead  @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@index([leadId])
+  @@index([agentId])
+  @@index([type])
+  @@index([createdAt])
+  @@map("messages")
+}
+
+// Call Recording (MyHub / Bitrix24 Activity)
+model CallRecording {
+  id               String   @id @default(uuid())
+  leadId           String?  @map("lead_id")
+  agentId          String   @map("agent_id")
+  bitrixActivityId String?  @unique @map("bitrix_activity_id")
+  phoneNumber      String   @map("phone_number")
+  direction        String
+  duration         Int?
+  audioUrl         String?  @map("audio_url")
+  transcriptText   String?  @map("transcript_text") @db.Text
+  summaryText      String?  @map("summary_text") @db.Text
+  sentiment        String?
+  isTranscribed    Boolean  @default(false) @map("is_transcribed")
+  isEmbedded       Boolean  @default(false) @map("is_embedded")
+  embeddingId      String?  @map("embedding_id")
+  messageId        String?  @unique @map("message_id")
+  metadata         Json?
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  @@index([agentId])
+  @@index([phoneNumber])
+  @@index([leadId])
+  @@map("call_recordings")
+}
+
+// Chat Session (AI conversation with agent)
+model ChatSession {
+  id                 String   @id @default(uuid())
+  agentId            String   @map("agent_id")
+  leadId             String?  @map("lead_id")
+  title              String?
+  summary            String?  @db.Text
+  isActive           Boolean  @default(true) @map("is_active")
+  isSummarized       Boolean  @default(false) @map("is_summarized")
+  summaryEmbeddingId String?  @map("summary_embedding_id")
+  lastActivityAt     DateTime @default(now()) @map("last_activity_at")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  agent        Agent         @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  lead         Lead?         @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  chatMessages ChatMessage[]
+
+  @@index([agentId])
+  @@index([leadId])
+  @@index([isActive])
+  @@index([isSummarized])
+  @@index([lastActivityAt])
+  @@map("chat_sessions")
+}
+
+// Chat Message (AI conversation turn)
+model ChatMessage {
+  id         String   @id @default(uuid())
+  sessionId  String   @map("session_id")
+  role       String   // 'user', 'assistant'
+  content    String   @db.Text
+  sources    Json?
+  tokenCount Int?     @map("token_count")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  session ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@map("chat_messages")
+}
+
+// Webhook Log (audit trail)
+model WebhookLog {
+  id           String   @id @default(uuid())
+  source       String   // 'chatapp', 'bitrix24'
+  eventType    String   @map("event_type")
+  payload      Json
+  processed    Boolean  @default(false)
+  errorMessage String?  @map("error_message") @db.Text
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([source])
+  @@index([processed])
+  @@map("webhook_logs")
+}
