@@ -24,10 +24,7 @@ router.post('/bitrix24', async (req: AuthRequest, res: Response) => {
       hoursLookback || 2 // Default: last 2 hours
     );
 
-    res.json({
-      success: true,
-      ...result,
-    });
+    res.json({ ...result });
   } catch (error: any) {
     logger.error('Manual Bitrix24 sync error:', error);
     res.status(500).json({
@@ -44,7 +41,7 @@ router.post('/bitrix24', async (req: AuthRequest, res: Response) => {
 router.post('/bitrix24/lead/:leadBitrixId', async (req: AuthRequest, res: Response) => {
   try {
     const agentId = req.user!.id;
-    const { leadBitrixId } = req.params;
+    const leadBitrixId = req.params.leadBitrixId as string;
     const { hoursLookback } = req.body;
 
     logger.info(`Manual sync for lead ${leadBitrixId} by agent ${agentId}`);
@@ -55,10 +52,7 @@ router.post('/bitrix24/lead/:leadBitrixId', async (req: AuthRequest, res: Respon
       hoursLookback || 2
     );
 
-    res.json({
-      success: true,
-      ...result,
-    });
+    res.json({ ...result });
   } catch (error: any) {
     logger.error(`Manual sync for lead error:`, error);
     res.status(500).json({

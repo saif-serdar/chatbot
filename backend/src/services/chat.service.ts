@@ -144,7 +144,7 @@ class ChatService {
           type: result.payload?.type as string,
           content: result.payload?.content as string,
           timestamp: result.payload?.timestamp as string,
-          source: result.payload?.metadata?.source || 'unknown',
+          source: (result.payload?.metadata as any)?.source || 'unknown',
           score: result.score,
         }))
         // Sort by timestamp (newest first) so recent important messages appear first

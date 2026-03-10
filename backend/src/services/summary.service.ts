@@ -149,13 +149,13 @@ Summary:`;
           payload: {
             agent_id: session.agentId,
             lead_id: session.leadId,
-            session_id: sessionId,
             type: 'session_summary',
             content: summary,
-            source: 'agent_chat_summary',
-            priority: 2, // Lower priority than actual lead messages
             timestamp: new Date().toISOString(),
             metadata: {
+              source: 'agent_chat_summary',
+              priority: 2,
+              session_id: sessionId,
               message_count: session.chatMessages.length,
               session_duration_minutes: Math.floor(
                 (session.lastActivityAt.getTime() - session.createdAt.getTime()) / 60000

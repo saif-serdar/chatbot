@@ -56,7 +56,7 @@ router.post('/message', async (req: AuthRequest, res: Response) => {
 // Get chat history for a session
 router.get('/session/:sessionId', async (req: AuthRequest, res: Response) => {
   try {
-    const { sessionId } = req.params;
+    const sessionId = req.params.sessionId as string;
 
     const session = await chatService.getChatHistory(sessionId, req.user!.id);
 
