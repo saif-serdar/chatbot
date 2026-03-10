@@ -164,7 +164,7 @@ router.post('/agents/save', async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, error: 'agents array is required' });
     }
 
-    const results = [];
+    const results: any[] = [];
 
     for (const { id, chatappUserId, bitrixUserId } of agents) {
       if (!id) continue;
@@ -249,8 +249,8 @@ router.post('/sync', async (_req: Request, res: Response) => {
       (a) => a.bitrixUserId && /^\d+$/.test(a.bitrixUserId)
     );
 
-    const synced = [];
-    const failed = [];
+    const synced: any[] = [];
+    const failed: any[] = [];
     const errors: string[] = [];
 
     for (const agent of agents) {
@@ -335,7 +335,7 @@ router.get('/bitrix-users', async (_req: Request, res: Response) => {
 
 router.delete('/agents/:id', async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     await prisma.agent.delete({ where: { id } });
     logger.info(`Deleted agent ${id}`);
     res.json({ success: true });

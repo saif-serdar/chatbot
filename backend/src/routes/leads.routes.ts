@@ -30,7 +30,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 // Get a specific lead
 router.get('/:leadId', async (req: AuthRequest, res: Response) => {
   try {
-    const { leadId } = req.params;
+    const leadId = req.params.leadId as string;
 
     const lead = await prisma.lead.findFirst({
       where: {
@@ -61,7 +61,7 @@ router.get('/:leadId', async (req: AuthRequest, res: Response) => {
 // Get messages for a lead
 router.get('/:leadId/messages', async (req: AuthRequest, res: Response) => {
   try {
-    const { leadId } = req.params;
+    const leadId = req.params.leadId as string;
     const { limit = '50', offset = '0' } = req.query;
 
     // Verify lead belongs to agent
