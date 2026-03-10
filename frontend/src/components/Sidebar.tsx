@@ -6,21 +6,21 @@ interface SidebarProps {
 }
 
 export function Sidebar({ onClose }: SidebarProps) {
-  const { sessions, selectedLead, currentSession, loadSession, loadSessions } =
+  const { sessions, currentLead, currentSession, loadSession, loadSessions } =
     useChatStore();
 
   useEffect(() => {
-    if (selectedLead) {
-      loadSessions(selectedLead.id);
+    if (currentLead) {
+      loadSessions();
     }
-  }, [selectedLead]);
+  }, [currentLead]);
 
   const handleSessionClick = (sessionId: string) => {
     loadSession(sessionId);
     onClose?.();
   };
 
-  if (!selectedLead) {
+  if (!currentLead) {
     return null;
   }
 
