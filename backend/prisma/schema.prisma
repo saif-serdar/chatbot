@@ -44,9 +44,10 @@ model Lead {
   updatedAt     DateTime @updatedAt @map("updated_at")
 
   // Relations
-  agent        Agent         @relation(fields: [agentId], references: [id], onDelete: Cascade)
-  messages     Message[]
-  chatSessions ChatSession[]
+  agent                Agent                 @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  messages             Message[]
+  chatSessions         ChatSession[]
+  conversationSummaries ConversationSummary[]
 
   @@unique([chatappChatId, agentId]) // one chat per agent, multiple nulls allowed
   @@index([agentId])
@@ -147,6 +148,26 @@ model ChatMessage {
 
   @@index([sessionId])
   @@map("chat_messages")
+}
+
+// Conversation Summary (periodic summary of WhatsApp + call activity per lead)
+model ConversationSummary {
+  id              String   @id @default(uuid())
+  leadId          String   @map("lead_id")
+  windowStart     DateTime @map("window_start")
+  windowEnd       DateTime @map("window_end")
+  summary         String   @db.Text
+  sentiment       String   // 'positive', 'negative', 'neutral'
+  messageCount    Int      @map("message_count")
+  sources         Json?    // { messageIds: [] }
+  bitrixCommentId String?  @map("bitrix_comment_id")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([leadId])
+  @@index([windowEnd])
+  @@map("conversation_summaries")
 }
 
 // Webhook Log (audit trail)

@@ -3,6 +3,7 @@ import { logger } from './logger';
 import { summaryService } from '../services/summary.service';
 import { webhookService } from '../services/webhook.service';
 import { chatappService } from '../services/chatapp.service';
+import { conversationSummaryService } from '../services/conversation-summary.service';
 import { config } from '../config';
 
 /**
@@ -83,6 +84,27 @@ export class Scheduler {
 
       this.tasks.push(retryTask);
       logger.info(`Transcription retry scheduled: ${retryCron}`);
+    }
+
+    // Conversation Summary (WhatsApp + calls per lead)
+    const convSummaryEnabled = config.conversationSummary?.enabled !== false;
+    const convSummaryCron = config.conversationSummary?.cronInterval || '*/30 * * * *';
+
+    if (convSummaryEnabled && cron.validate(convSummaryCron)) {
+      const convSummaryTask = cron.schedule(convSummaryCron, async () => {
+        logger.info('Running conversation summary generation...');
+        try {
+          const results = await conversationSummaryService.generateWindowSummaries();
+          if (results.processed > 0 || results.failed > 0) {
+            logger.info(`Conversation summary: ${results.processed} processed, ${results.skipped} skipped, ${results.failed} failed`);
+          }
+        } catch (err: any) {
+          logger.error('Error in conversation summary generation:', err.message);
+        }
+      });
+
+      this.tasks.push(convSummaryTask);
+      logger.info(`Conversation summary scheduled: ${convSummaryCron}`);
     }
 
     logger.info(`Scheduler started with ${this.tasks.length} active tasks`);

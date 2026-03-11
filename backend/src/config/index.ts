@@ -63,6 +63,13 @@ export const config = {
     voiceLookbackHours: parseInt(process.env.VOICE_RETRY_LOOKBACK_HOURS || '24', 10), // Default: retry voice up to 24h old
   },
 
+  // Conversation Summary (periodic WhatsApp + call summary per lead)
+  conversationSummary: {
+    enabled: process.env.ENABLE_CONVERSATION_SUMMARY !== 'false',                         // Default: enabled
+    cronInterval: process.env.CONVERSATION_SUMMARY_CRON || '*/30 * * * *',               // Default: every 30 minutes
+    lookbackHours: parseInt(process.env.CONVERSATION_SUMMARY_LOOKBACK_HOURS || '24', 10), // Default: 24h for first-time leads
+  },
+
   // Admin credentials
   admin: {
     email: process.env.ADMIN_EMAIL || 'admin@serdar.ae',
