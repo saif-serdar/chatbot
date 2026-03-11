@@ -20,13 +20,12 @@ class ConversationSummaryService {
       where: {
         createdAt: { gte: fallbackStart },
         type: { not: 'system' },
-        leadId: { not: null },
       },
       select: { leadId: true },
       distinct: ['leadId'],
     });
 
-    const leadIds = recentLeads.map(r => r.leadId!).filter(Boolean);
+    const leadIds = recentLeads.map(r => r.leadId);
 
     if (leadIds.length === 0) {
       logger.info('Conversation summary: no leads with recent activity');
