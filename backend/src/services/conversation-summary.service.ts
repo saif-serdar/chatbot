@@ -6,6 +6,12 @@ import { logger } from '../utils/logger';
 
 const anthropic = new Anthropic({ apiKey: config.anthropic.apiKey });
 
+// Dubai is always UTC+4 (no daylight saving)
+const fmtDubai = (d: Date) => {
+  const dubai = new Date(d.getTime() + 4 * 60 * 60 * 1000);
+  return dubai.toISOString().replace('T', ' ').substring(0, 16) + ' GST';
+};
+
 class ConversationSummaryService {
 
   // ─── Main entry: called by the scheduler ─────────────────────────────────
@@ -82,7 +88,7 @@ class ConversationSummaryService {
 
     // Build chronological combined text
     const lines = messages.map(msg => {
-      const time = msg.createdAt.toISOString().replace('T', ' ').substring(0, 16) + ' UTC';
+      const time = fmtDubai(msg.createdAt);
       if (msg.type === 'call_transcript') {
         const truncated = msg.content.length > 800
           ? msg.content.substring(0, 800) + '...'
@@ -176,8 +182,7 @@ class ConversationSummaryService {
     summaryId: string,
   ): Promise<void> {
     try {
-      const fmt = (d: Date) => d.toISOString().replace('T', ' ').substring(0, 16) + ' UTC';
-      let comment = `Conversation Summary (${fmt(windowStart)} → ${fmt(windowEnd)})\n\n`;
+      let comment = `Conversation Summary (${fmtDubai(windowStart)} → ${fmtDubai(windowEnd)})\n\n`;
       comment += `Summary:\n${summary}`;
       if (sentiment) comment += `\n\nSentiment: ${sentiment}`;
 
