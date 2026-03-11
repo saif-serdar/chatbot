@@ -538,7 +538,10 @@ class WebhookService {
         }
 
         // ── Post to Bitrix24 timeline (once per call) ─────────────────────
-        if (activity.OWNER_ID && !(callRecording.metadata as any)?.bitrixTimelineCommentId) {
+        // Re-fetch from DB to avoid race condition where two concurrent webhook
+        // events (OnCrmActivityAdd + OnCrmActivityUpdate) both see stale metadata
+        const latestCallRec = await prisma.callRecording.findUnique({ where: { id: callRecording.id } });
+        if (activity.OWNER_ID && !(latestCallRec?.metadata as any)?.bitrixTimelineCommentId) {
           const commentId = await this.saveToBitrix24Timeline({
             ownerId: String(activity.OWNER_ID),
             ownerTypeId: String(activity.OWNER_TYPE_ID || '1'),
@@ -554,7 +557,7 @@ class WebhookService {
               where: { id: callRecording.id },
               data: {
                 metadata: {
-                  ...(callRecording.metadata as object || {}),
+                  ...(latestCallRec?.metadata as object || {}),
                   bitrixTimelineCommentId: commentId,
                 },
               },
@@ -713,7 +716,9 @@ class WebhookService {
         await prisma.callRecording.update({ where: { id: callRec.id }, data: { isEmbedded: true, embeddingId: vectorId } });
 
         // ── Post to Bitrix24 timeline (once per call) ─────────────────────
-        if (activity.OWNER_ID && !(callRec.metadata as any)?.bitrixTimelineCommentId) {
+        // Re-fetch from DB to get current state and avoid duplicate posts
+        const latestCallRec = await prisma.callRecording.findUnique({ where: { id: callRec.id } });
+        if (activity.OWNER_ID && !(latestCallRec?.metadata as any)?.bitrixTimelineCommentId) {
           const commentId = await this.saveToBitrix24Timeline({
             ownerId: String(activity.OWNER_ID),
             ownerTypeId: String(activity.OWNER_TYPE_ID || '1'),
@@ -729,7 +734,7 @@ class WebhookService {
               where: { id: callRec.id },
               data: {
                 metadata: {
-                  ...(callRec.metadata as object || {}),
+                  ...(latestCallRec?.metadata as object || {}),
                   bitrixTimelineCommentId: commentId,
                 },
               },
